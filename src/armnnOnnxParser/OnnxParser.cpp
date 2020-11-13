@@ -373,6 +373,11 @@ const std::map<std::string, OnnxParser::OperationParsingFunction> OnnxParser::m_
     { "Tanh",                  &OnnxParser::ParseTanh },
     { "Relu",                  &OnnxParser::ParseRelu },
     { "LeakyRelu",             &OnnxParser::ParseLeakyRelu },
+    { "Abs",                   &OnnxParser::ParseAbs },
+    { "Exp",                   &OnnxParser::ParseExp },
+    { "Sqrt",                  &OnnxParser::ParseSqrt },
+    { "Neg",                   &OnnxParser::ParseNeg },
+    { "Log",                   &OnnxParser::ParseLog },
     { "Conv",                  &OnnxParser::ParseConv },
     { "Add",                   &OnnxParser::ParseAdd },
     { "Flatten",               &OnnxParser::ParseFlatten},
@@ -1118,6 +1123,30 @@ void OnnxParser::ParseActivation(const onnx::NodeProto& node, const armnn::Activ
     RegisterOutputSlots(layer, {node.output(0)});
 }
 
+void OnnxParser::ParseUnary(const onnx::NodeProto& node, const armnn::UnaryOperation op)
+{
+    CHECK_VALID_SIZE(static_cast<size_t>(node.input_size()), 1);
+    CHECK_VALID_SIZE(static_cast<size_t>(node.output_size()), 1);
+
+    VALID_INPUTS(node, STR_LIST(onnx::TensorProto::FLOAT));
+
+    ElementwiseUnaryDescriptor desc;
+    desc.m_Operation = op;
+
+    IConnectableLayer* const layer = m_Network->AddElementwiseUnaryLayer(desc, node.name().c_str());
+    ARMNN_ASSERT(layer != nullptr);
+
+    auto outputInfo = ComputeOutputInfo({ node.output(0)}, layer, {m_TensorsInfo[node.input(0)].m_info->GetShape()});
+    layer->GetOutputSlot(0).SetTensorInfo(outputInfo[0]);
+
+    // register the input connection slots for the layer, connections are made after all layers have been created
+    // only the tensors for the inputs are relevant, exclude the const tensors
+    RegisterInputSlots(layer, {node.input(0)});
+
+    // register the output connection slots for the layer, connections are made after all layers have been created
+    RegisterOutputSlots(layer, {node.output(0)});
+}
+
 void OnnxParser::ParseClip(const onnx::NodeProto& node)
 {
     ParseActivation(node, ActivationFunction::BoundedReLu);
@@ -1141,6 +1170,31 @@ void OnnxParser::ParseRelu(const onnx::NodeProto& node)
 void OnnxParser::ParseLeakyRelu(const onnx::NodeProto& node)
 {
     ParseActivation(node, ActivationFunction::LeakyReLu);
+}
+
+void OnnxParser::ParseAbs(const onnx::NodeProto& node)
+{
+    ParseUnary(node, UnaryOperation::Abs);
+}
+
+void OnnxParser::ParseExp(const onnx::NodeProto& node)
+{
+    ParseUnary(node, UnaryOperation::Exp);
+}
+
+void OnnxParser::ParseSqrt(const onnx::NodeProto& node)
+{
+    ParseUnary(node, UnaryOperation::Sqrt);
+}
+
+void OnnxParser::ParseNeg(const onnx::NodeProto& node)
+{
+    ParseUnary(node, UnaryOperation::Neg);
+}
+
+void OnnxParser::ParseLog(const onnx::NodeProto& node)
+{
+    ParseUnary(node, UnaryOperation::Log);
 }
 
 void OnnxParser::ParseAdd(const onnx::NodeProto& node)

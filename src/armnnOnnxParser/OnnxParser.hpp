@@ -15,6 +15,7 @@ namespace armnn
 {
 class TensorInfo;
 enum class ActivationFunction;
+enum class UnaryOperation;
 }
 
 namespace armnnOnnxParser
@@ -104,6 +105,13 @@ private:
     void ParseTanh(const onnx::NodeProto& nodeProto);
     void ParseRelu(const onnx::NodeProto& nodeProto);
     void ParseLeakyRelu(const onnx::NodeProto& nodeProto);
+
+    void ParseUnary(const onnx::NodeProto& nodeProto, const armnn::UnaryOperation op);
+    void ParseAbs(const onnx::NodeProto& nodeProto);
+    void ParseExp(const onnx::NodeProto& nodeProto);
+    void ParseSqrt(const onnx::NodeProto& nodeProto);
+    void ParseNeg(const onnx::NodeProto& nodeProto);
+    void ParseLog(const onnx::NodeProto& nodeProto);
 
     void ParseAdd(const onnx::NodeProto& nodeProto);
     void ParseAveragePool(const onnx::NodeProto& nodeProto);
