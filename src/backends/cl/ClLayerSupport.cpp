@@ -32,6 +32,7 @@
 #include "workloads/ClDequantizeWorkload.hpp"
 #include "workloads/ClDivisionFloatWorkload.hpp"
 #include "workloads/ClExpWorkload.hpp"
+#include "workloads/ClLogWorkload.hpp"
 #include "workloads/ClFillWorkload.hpp"
 #include "workloads/ClFloorFloatWorkload.hpp"
 #include "workloads/ClFullyConnectedWorkload.hpp"
@@ -422,6 +423,11 @@ bool ClLayerSupport::IsElementwiseUnarySupported(const TensorInfo& input,
                                            output);
         case UnaryOperation::Rsqrt:
             FORWARD_WORKLOAD_VALIDATE_FUNC(ClRsqrtWorkloadValidate,
+                                           reasonIfUnsupported,
+                                           input,
+                                           output);
+        case UnaryOperation::Log:
+            FORWARD_WORKLOAD_VALIDATE_FUNC(ClLogWorkloadValidate,
                                            reasonIfUnsupported,
                                            input,
                                            output);

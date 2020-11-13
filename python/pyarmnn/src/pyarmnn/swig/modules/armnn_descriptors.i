@@ -598,7 +598,7 @@ struct PadDescriptor
 
     Contains:
         m_Operation (int): Indicates which Unary operation to use. (`UnaryOperation_Abs`, `UnaryOperation_Exp`,
-                           `UnaryOperation_Neg`, `UnaryOperation_Rsqrt`, `UnaryOperation_Sqrt`)
+                           `UnaryOperation_Neg`, `UnaryOperation_Rsqrt`, `UnaryOperation_Sqrt`, `UnaryOperation_Log`)
                            Default: `UnaryOperation_Abs`.
 
     ") ElementwiseUnaryDescriptor;

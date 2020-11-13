@@ -77,6 +77,7 @@ constexpr char const* GetUnaryOperationAsCString(UnaryOperation operation)
         case UnaryOperation::Sqrt:  return "Sqrt";
         case UnaryOperation::Rsqrt: return "Rsqrt";
         case UnaryOperation::Neg:   return "Neg";
+        case UnaryOperation::Log:   return "Log";
         default:                    return "Unknown";
     }
 }

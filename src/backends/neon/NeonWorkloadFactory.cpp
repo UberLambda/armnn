@@ -249,6 +249,8 @@ std::unique_ptr<IWorkload> NeonWorkloadFactory::CreateElementwiseUnary(
             return std::make_unique<NeonNegWorkload>(descriptor, info);
         case UnaryOperation::Exp:
             return std::make_unique<NeonExpWorkload>(descriptor, info);
+        case UnaryOperation::Log:
+            return std::make_unique<NeonLogWorkload>(descriptor, info);
         default:
             return nullptr;
     }

@@ -90,7 +90,7 @@ from ._generated.pyarmnn import ComparisonDescriptor, ComparisonOperation_Equal,
     ComparisonOperation_GreaterOrEqual, ComparisonOperation_Less, \
     ComparisonOperation_LessOrEqual, ComparisonOperation_NotEqual
 from ._generated.pyarmnn import UnaryOperation_Abs, UnaryOperation_Exp, UnaryOperation_Sqrt, UnaryOperation_Rsqrt, \
-    UnaryOperation_Neg, ElementwiseUnaryDescriptor
+    UnaryOperation_Neg, UnaryOperation_Log, ElementwiseUnaryDescriptor
 from ._generated.pyarmnn import Convolution2dDescriptor, DepthToSpaceDescriptor, DepthwiseConvolution2dDescriptor, \
     DetectionPostProcessDescriptor, FakeQuantizationDescriptor, FillDescriptor, FullyConnectedDescriptor, \
     GatherDescriptor, InstanceNormalizationDescriptor, LstmDescriptor, L2NormalizationDescriptor, MeanDescriptor

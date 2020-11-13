@@ -42,6 +42,8 @@ list(APPEND armnnNeonBackendWorkloads_sources
     NeonDetectionPostProcessWorkload.hpp
     NeonExpWorkload.cpp
     NeonExpWorkload.hpp
+    NeonLogWorkload.cpp
+    NeonLogWorkload.hpp
     NeonFillWorkload.cpp
     NeonFillWorkload.hpp
     NeonFloorFloatWorkload.cpp

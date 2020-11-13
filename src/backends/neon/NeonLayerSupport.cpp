@@ -26,6 +26,7 @@
 #include "workloads/NeonBatchNormalizationWorkload.hpp"
 #include "workloads/NeonBatchToSpaceNdWorkload.hpp"
 #include "workloads/NeonExpWorkload.hpp"
+#include "workloads/NeonLogWorkload.hpp"
 #include "workloads/NeonComparisonWorkload.hpp"
 #include "workloads/NeonConstantWorkload.hpp"
 #include "workloads/NeonConvolution2dWorkload.hpp"
@@ -388,6 +389,11 @@ bool NeonLayerSupport::IsElementwiseUnarySupported(const TensorInfo& input,
                                            output);
         case UnaryOperation::Exp:
             FORWARD_WORKLOAD_VALIDATE_FUNC(NeonExpWorkloadValidate,
+                                           reasonIfUnsupported,
+                                           input,
+                                           output);
+        case UnaryOperation::Log:
+            FORWARD_WORKLOAD_VALIDATE_FUNC(NeonLogWorkloadValidate,
                                            reasonIfUnsupported,
                                            input,
                                            output);

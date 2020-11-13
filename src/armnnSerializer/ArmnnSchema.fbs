@@ -270,7 +270,8 @@ enum UnaryOperation : byte {
     Rsqrt = 1,
     Sqrt = 2,
     Exp = 3,
-    Neg = 4
+    Neg = 4,
+    Log = 5
 }
 
 table ElementwiseUnaryDescriptor {

@@ -90,7 +90,8 @@ enum class UnaryOperation
     Exp   = 1,
     Sqrt  = 2,
     Rsqrt = 3,
-    Neg   = 4
+    Neg   = 4,
+    Log   = 5
 };
 
 enum class PoolingAlgorithm

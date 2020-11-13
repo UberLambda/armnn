@@ -261,6 +261,8 @@ std::unique_ptr<IWorkload> ClWorkloadFactory::CreateElementwiseUnary(const Eleme
              }
         case UnaryOperation::Exp:
             return std::make_unique<ClExpWorkload>(descriptor, info);
+        case UnaryOperation::Log:
+            return std::make_unique<ClLogWorkload>(descriptor, info);
         case UnaryOperation::Neg:
             return std::make_unique<ClNegWorkload>(descriptor, info);
         case UnaryOperation::Rsqrt:

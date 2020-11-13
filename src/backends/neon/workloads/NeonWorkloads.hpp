@@ -24,6 +24,7 @@
 #include "NeonDetectionPostProcessWorkload.hpp"
 #include "NeonDivisionWorkload.hpp"
 #include "NeonExpWorkload.hpp"
+#include "NeonLogWorkload.hpp"
 #include "NeonFillWorkload.hpp"
 #include "NeonFloorFloatWorkload.hpp"
 #include "NeonFullyConnectedWorkload.hpp"
