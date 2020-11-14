@@ -380,6 +380,8 @@ const std::map<std::string, OnnxParser::OperationParsingFunction> OnnxParser::m_
     { "Log",                   &OnnxParser::ParseLog },
     { "Conv",                  &OnnxParser::ParseConv },
     { "Add",                   &OnnxParser::ParseAdd },
+    { "Mul",                   &OnnxParser::ParseMul },
+    { "Div",                   &OnnxParser::ParseDiv },
     { "Flatten",               &OnnxParser::ParseFlatten},
 };
 
@@ -1197,7 +1199,7 @@ void OnnxParser::ParseLog(const onnx::NodeProto& node)
     ParseUnary(node, UnaryOperation::Log);
 }
 
-void OnnxParser::ParseAdd(const onnx::NodeProto& node)
+void OnnxParser::ParseBroadcastingBinary(const onnx::NodeProto& node, const char *opName, AddLayerFunc addLayerFunc)
 {
     CHECK_VALID_SIZE(static_cast<size_t>(node.input_size()), 2);
     CHECK_VALID_SIZE(static_cast<size_t>(node.output_size()), 1);
@@ -1234,7 +1236,7 @@ void OnnxParser::ParseAdd(const onnx::NodeProto& node)
     }
 
 
-    IConnectableLayer* layer = m_Network->AddAdditionLayer(node.name().c_str());
+    IConnectableLayer* layer = (*m_Network.*addLayerFunc)(node.name().c_str());
     ARMNN_ASSERT(layer != nullptr);
 
     auto outputInfo = ComputeOutputInfo({ node.output(0) }, layer,
@@ -1244,15 +1246,30 @@ void OnnxParser::ParseAdd(const onnx::NodeProto& node)
 
     // register the input connection -> for constant inputs, we need to make a newDim constant layer
     if(m_TensorsInfo[inputs.first].isConstant()) {
-        CreateConstantLayer(inputs.first, boost::str(boost::format("Add:constant_of_%1%") % node.input(0)));
+        CreateConstantLayer(inputs.first, boost::str(boost::format("%1%:constant_of_%2%") % opName % node.input(0)));
     }
     if(m_TensorsInfo[inputs.second].isConstant()) {
-        CreateConstantLayer(inputs.second, boost::str(boost::format("Add:constant_of_%1%") % node.input(1)));
+        CreateConstantLayer(inputs.second, boost::str(boost::format("%1%:constant_of_%2%") % opName % node.input(1)));
     }
     RegisterInputSlots(layer, {inputs.first, inputs.second});
 
     // register the output connection
     RegisterOutputSlots(layer, {node.output(0)});
+}
+
+void OnnxParser::ParseAdd(const onnx::NodeProto& nodeProto)
+{
+    ParseBroadcastingBinary(nodeProto, "Add", &INetwork::AddAdditionLayer);
+}
+
+void OnnxParser::ParseMul(const onnx::NodeProto& nodeProto)
+{
+    ParseBroadcastingBinary(nodeProto, "Mul", &INetwork::AddMultiplicationLayer);
+}
+
+void OnnxParser::ParseDiv(const onnx::NodeProto& nodeProto)
+{
+    ParseBroadcastingBinary(nodeProto, "Div", &INetwork::AddDivisionLayer);
 }
 
 void OnnxParser::ParseAveragePool(const onnx::NodeProto& node)

@@ -113,7 +113,12 @@ private:
     void ParseNeg(const onnx::NodeProto& nodeProto);
     void ParseLog(const onnx::NodeProto& nodeProto);
 
+    typedef armnn::IConnectableLayer*(armnn::INetwork::*AddLayerFunc)(const char *name);
+    void ParseBroadcastingBinary(const onnx::NodeProto& node, const char *opName, AddLayerFunc addLayerFunc);
     void ParseAdd(const onnx::NodeProto& nodeProto);
+    void ParseMul(const onnx::NodeProto& nodeProto);
+    void ParseDiv(const onnx::NodeProto& nodeProto);
+
     void ParseAveragePool(const onnx::NodeProto& nodeProto);
     void ParseBatchNormalization(const onnx::NodeProto& node);
     void ParseConstant(const onnx::NodeProto& nodeProto);
