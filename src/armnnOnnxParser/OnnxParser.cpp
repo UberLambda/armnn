@@ -369,6 +369,7 @@ const std::map<std::string, OnnxParser::OperationParsingFunction> OnnxParser::m_
     { "Constant",              &OnnxParser::ParseConstant },
     { "MaxPool",               &OnnxParser::ParseMaxPool },
     { "Reshape",               &OnnxParser::ParseReshape },
+    { "Resize",                &OnnxParser::ParseResize },
     { "Sigmoid",               &OnnxParser::ParseSigmoid },
     { "Tanh",                  &OnnxParser::ParseTanh },
     { "Relu",                  &OnnxParser::ParseRelu },
@@ -1687,6 +1688,101 @@ void OnnxParser::ParseReshape(const onnx::NodeProto& node)
 
         CreateReshapeLayer(node.input(0), node.output(0), node.name());
     }
+}
+
+void OnnxParser::ParseResize(const onnx::NodeProto& node)
+{
+    CHECK_VALID_SIZE(static_cast<size_t>(node.input_size()), 1, 4);
+    CHECK_VALID_SIZE(static_cast<size_t>(node.output_size()), 1);
+
+    // FIXME: Double-check what T1, T2 mean from ONNX docs
+    CHECK_VALID_DATATYPE(node.name(), node.input(0),
+                         m_TensorsInfo[node.input(0)].m_dtype,
+                         onnx::TensorProto::FLOAT); //input
+    CHECK_VALID_DATATYPE(node.name(), node.input(1),
+                         m_TensorsInfo[node.input(1)].m_dtype,
+                         onnx::TensorProto::FLOAT); //roi
+    CHECK_VALID_DATATYPE(node.name(), node.input(2),
+                         m_TensorsInfo[node.input(2)].m_dtype,
+                         onnx::TensorProto::FLOAT); //scales
+    CHECK_VALID_DATATYPE(node.name(), node.input(3),
+                         m_TensorsInfo[node.input(3)].m_dtype,
+                         onnx::TensorProto::INT64); //sizes
+    CHECK_VALID_DATATYPE(node.name(), node.output(0),
+                         m_TensorsInfo[node.output(0)].m_dtype,
+                         onnx::TensorProto::FLOAT); //output
+
+    auto *inputTensorInfo = m_TensorsInfo[node.input(0)].m_info.get();
+    if(inputTensorInfo == nullptr)
+    {
+        throw ParseException(boost::str(
+            boost::format("Missing input info for node '%2%' %3%")
+            % node.name()
+            % CHECK_LOCATION().AsString()));
+    }
+    else if(inputTensorInfo->GetShape().GetNumDimensions() != 2)
+    {
+        throw ParseException(boost::str(
+            boost::format("Resize for non-2D tensor is not implemented, at node '%2%' %3%")
+            % node.name()
+            % CHECK_LOCATION().AsString()));
+    }
+
+    // FIXME - implement all "coordinate_transformation_mode" (not just "align_corners")
+    ResizeDescriptor desc;
+    desc.m_DataLayout   = armnn::DataLayout::NCHW;
+    desc.m_AlignCorners = ReadOptionalNodeStringAttribute(node, "coordinate_transformation_mode") == "align_corners";
+
+    auto resizeModeAttr = ReadOptionalNodeStringAttribute(node, "mode");
+    if(resizeModeAttr == "nearest")
+    {
+        desc.m_Method = ResizeMethod::NearestNeighbor;
+    }
+    else if(resizeModeAttr == "linear")
+    {
+        desc.m_Method = ResizeMethod::Bilinear;
+    }
+    else
+    {
+        throw ParseException(boost::str(
+            boost::format("Resize mode '%1%' not supported in node '%2%' %3%")
+            % resizeModeAttr
+            % node.name()
+            % CHECK_LOCATION().AsString()));
+    }
+
+    if(!node.input(2).empty())
+    {
+        // Floating-point scales, relative to the input image's size
+        auto *scalesTensor = m_TensorsInfo[node.input(2)].m_tensor.get();
+        float heightScale = scalesTensor->float_data()[0];
+        float widthScale = scalesTensor->float_data()[1];
+        // Dimensions: N=0, C=1, H=2, W=3
+        desc.m_TargetHeight = static_cast<uint32_t>(inputTensorInfo->GetShape()[2] * heightScale);
+        desc.m_TargetWidth = static_cast<uint32_t>(inputTensorInfo->GetShape()[3] * widthScale);
+    }
+    else
+    {
+        // Fixed, integer sizes for the image
+        auto *sizesTensor = m_TensorsInfo[node.input(3)].m_tensor.get();
+        desc.m_TargetHeight = static_cast<uint32_t>(sizesTensor->int64_data()[0]);
+        desc.m_TargetWidth  = static_cast<uint32_t>(sizesTensor->int64_data()[1]);
+    }
+
+    IConnectableLayer* layer = m_Network->AddResizeLayer(desc, node.name().c_str());
+    ARMNN_ASSERT(layer != nullptr);
+
+    // Same N, C; resized H, W
+    TensorShape outputShape = inputTensorInfo->GetShape();
+    outputShape[2] = desc.m_TargetHeight;
+    outputShape[3] = desc.m_TargetWidth;
+    auto outputInfo = ComputeOutputInfo({node.output(0)}, layer,
+                                        {outputShape});
+    layer->GetOutputSlot(0).SetTensorInfo(outputInfo[0]);
+
+    // Register slots for the layer only after the Resize layer has been created
+    RegisterInputSlots(layer, {node.input(0)});
+    RegisterOutputSlots(layer, {node.output(0)});
 }
 
 void OnnxParser::PrependForBroadcast(const std::string& outputName,
