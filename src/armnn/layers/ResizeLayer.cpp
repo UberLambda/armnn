@@ -41,26 +41,36 @@ std::vector<TensorShape> ResizeLayer::InferOutputShapes(const std::vector<Tensor
     const TensorShape& inputShape = inputShapes[0];
     const DataLayoutIndexed dimensionIndices = m_Param.m_DataLayout;
 
-    unsigned int outWidth = 0, outHeight = 0;
+    unsigned int outHeight = 0, outWidth = 0;
+    bool outHeightSpecified = true, outWidthSpecified = true;
     if (m_Param.m_SizeMode == ResizeDescriptor::SizeMode::Size)
     {
-        outWidth = static_cast<unsigned int>(m_Param.m_TargetWidth);
         outHeight = static_cast<unsigned int>(m_Param.m_TargetHeight);
+        outWidth = static_cast<unsigned int>(m_Param.m_TargetWidth);
     }
-    else // SizeMode::Scale
+    else
     {
-        auto baseHeight = static_cast<float>(inputShape[dimensionIndices.GetHeightIndex()]);
-        auto baseWidth = static_cast<float>(inputShape[dimensionIndices.GetWidthIndex()]);
-        outHeight = static_cast<unsigned int>(baseHeight * m_Param.m_TargetHeight);
-        outWidth = static_cast<unsigned int>(baseWidth * m_Param.m_TargetWidth);
+        // SizeMode::Scale. The H and W of the input tensor might be unspecified at this stage,
+        // so we have to take that into account.
+        if(inputShape.AreAllDimensionsSpecified())
+        {
+            auto baseHeight = static_cast<float>(inputShape[dimensionIndices.GetHeightIndex()]);
+            auto baseWidth = static_cast<float>(inputShape[dimensionIndices.GetWidthIndex()]);
+            outHeight = static_cast<unsigned int>(baseHeight * m_Param.m_TargetHeight);
+            outWidth = static_cast<unsigned int>(baseWidth * m_Param.m_TargetWidth);
+        }
+        else
+        {
+            outHeightSpecified = outWidthSpecified = false;
+        }
     }
 
     unsigned int outChannels = inputShape[dimensionIndices.GetChannelsIndex()];
     unsigned int outBatch = inputShape[0];
 
     TensorShape tensorShape = m_Param.m_DataLayout == armnn::DataLayout::NHWC ?
-        TensorShape( { outBatch, outHeight, outWidth, outChannels } ) :
-        TensorShape( { outBatch, outChannels, outHeight, outWidth });
+        TensorShape( { outBatch, outHeight, outWidth, outChannels }, { true, outHeightSpecified, outWidthSpecified, true }) :
+        TensorShape( { outBatch, outChannels, outHeight, outWidth }, { true, true, outHeightSpecified, outWidthSpecified });
 
     if (m_Param.m_HalfPixelCenters && m_Param.m_AlignCorners)
     {
