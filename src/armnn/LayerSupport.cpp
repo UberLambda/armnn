@@ -589,8 +589,8 @@ bool IsResizeBilinearSupported(const BackendId& backend,
     descriptor.m_Method = ResizeMethod::Bilinear;
 
     const TensorShape& outputShape = output.GetShape();
-    descriptor.m_TargetWidth  = outputShape[3];
-    descriptor.m_TargetHeight = outputShape[2];
+    descriptor.m_TargetWidth  = static_cast<float>(outputShape[3]);
+    descriptor.m_TargetHeight = static_cast<float>(outputShape[2]);
 
     FORWARD_LAYER_SUPPORT_FUNC(backend, IsResizeSupported, input, output, descriptor);
 }

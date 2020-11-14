@@ -580,8 +580,8 @@ std::unique_ptr<IWorkload> RefWorkloadFactory::CreateResizeBilinear(const Resize
     ResizeQueueDescriptor resizeDescriptor;
     resizeDescriptor.m_Parameters.m_Method       = ResizeMethod::Bilinear;
     resizeDescriptor.m_Parameters.m_DataLayout   = descriptor.m_Parameters.m_DataLayout;
-    resizeDescriptor.m_Parameters.m_TargetWidth  = descriptor.m_Parameters.m_TargetWidth;
-    resizeDescriptor.m_Parameters.m_TargetHeight = descriptor.m_Parameters.m_TargetHeight;
+    resizeDescriptor.m_Parameters.m_TargetWidth  = static_cast<float>(descriptor.m_Parameters.m_TargetWidth);
+    resizeDescriptor.m_Parameters.m_TargetHeight = static_cast<float>(descriptor.m_Parameters.m_TargetHeight);
 
     return CreateResize(resizeDescriptor, info);
 }

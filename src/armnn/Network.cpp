@@ -1491,8 +1491,8 @@ IConnectableLayer* Network::AddResizeBilinearLayer(const ResizeBilinearDescripto
     ResizeDescriptor resizeDescriptor;
     resizeDescriptor.m_Method           = ResizeMethod::Bilinear;
     resizeDescriptor.m_DataLayout       = descriptor.m_DataLayout;
-    resizeDescriptor.m_TargetWidth      = descriptor.m_TargetWidth;
-    resizeDescriptor.m_TargetHeight     = descriptor.m_TargetHeight;
+    resizeDescriptor.m_TargetWidth      = static_cast<float>(descriptor.m_TargetWidth);
+    resizeDescriptor.m_TargetHeight     = static_cast<float>(descriptor.m_TargetHeight);
     resizeDescriptor.m_AlignCorners     = descriptor.m_AlignCorners;
     resizeDescriptor.m_HalfPixelCenters = descriptor.m_HalfPixelCenters;
 

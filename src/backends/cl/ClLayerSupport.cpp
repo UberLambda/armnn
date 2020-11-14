@@ -757,8 +757,8 @@ bool ClLayerSupport::IsResizeBilinearSupported(const TensorInfo& input,
     descriptor.m_DataLayout = DataLayout::NCHW;
 
     const TensorShape& outputShape = output.GetShape();
-    descriptor.m_TargetHeight = outputShape[2];
-    descriptor.m_TargetWidth  = outputShape[3];
+    descriptor.m_TargetHeight = static_cast<float>(outputShape[2]);
+    descriptor.m_TargetWidth  = static_cast<float>(outputShape[3]);
 
     return IsResizeSupported(input, output, descriptor, reasonIfUnsupported);
 }

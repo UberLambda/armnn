@@ -452,8 +452,8 @@ void QuantizerVisitor::VisitResizeBilinearLayer(const IConnectableLayer* layer,
 {
     ResizeDescriptor resizeDescriptor;
     resizeDescriptor.m_Method       = ResizeMethod::Bilinear;
-    resizeDescriptor.m_TargetWidth  = resizeBilinearDescriptor.m_TargetWidth;
-    resizeDescriptor.m_TargetHeight = resizeBilinearDescriptor.m_TargetHeight;
+    resizeDescriptor.m_TargetWidth  = static_cast<float>(resizeBilinearDescriptor.m_TargetWidth);
+    resizeDescriptor.m_TargetHeight = static_cast<float>(resizeBilinearDescriptor.m_TargetHeight);
     resizeDescriptor.m_DataLayout   = resizeBilinearDescriptor.m_DataLayout;
 
     VisitResizeLayer(layer, resizeDescriptor, name);
