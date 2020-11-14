@@ -41,8 +41,20 @@ std::vector<TensorShape> ResizeLayer::InferOutputShapes(const std::vector<Tensor
     const TensorShape& inputShape = inputShapes[0];
     const DataLayoutIndexed dimensionIndices = m_Param.m_DataLayout;
 
-    unsigned int outWidth = m_Param.m_TargetWidth;
-    unsigned int outHeight = m_Param.m_TargetHeight;
+    unsigned int outWidth = 0, outHeight = 0;
+    if (m_Param.m_SizeMode == ResizeDescriptor::SizeMode::Size)
+    {
+        outWidth = static_cast<unsigned int>(m_Param.m_TargetWidth);
+        outHeight = static_cast<unsigned int>(m_Param.m_TargetHeight);
+    }
+    else // SizeMode::Scale
+    {
+        auto baseHeight = static_cast<float>(inputShape[dimensionIndices.GetHeightIndex()]);
+        auto baseWidth = static_cast<float>(inputShape[dimensionIndices.GetWidthIndex()]);
+        outHeight = static_cast<unsigned int>(baseHeight * m_Param.m_TargetHeight);
+        outWidth = static_cast<unsigned int>(baseWidth * m_Param.m_TargetWidth);
+    }
+
     unsigned int outChannels = inputShape[dimensionIndices.GetChannelsIndex()];
     unsigned int outBatch = inputShape[0];
 

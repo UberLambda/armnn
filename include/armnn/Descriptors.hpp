@@ -777,7 +777,8 @@ struct ResizeBilinearDescriptor
 struct ResizeDescriptor
 {
     ResizeDescriptor()
-        : m_TargetWidth(0)
+        : m_SizeMode(SizeMode::Size)
+        , m_TargetWidth(0)
         , m_TargetHeight(0)
         , m_Method(ResizeMethod::NearestNeighbor)
         , m_DataLayout(DataLayout::NCHW)
@@ -795,10 +796,20 @@ struct ResizeDescriptor
                m_HalfPixelCenters     == rhs.m_HalfPixelCenters;
     }
 
-    /// Target width value.
-    uint32_t m_TargetWidth;
-    /// Target height value.
-    uint32_t m_TargetHeight;
+    enum class SizeMode
+    {
+        Size = 0,
+        Scale = 1,
+    };
+
+    /// Resize to fixed sizes or scale the input by a factor?
+    SizeMode m_SizeMode;
+    /// If `m_SizeMode` is `Size`, this is the target width in pixels.
+    /// Otherwise, this is the input width scaling factor.
+    float m_TargetWidth;
+    /// If `m_SizeMode` is `Size`, this is the target height in pixels.
+    /// Otherwise, this is the input height scaling factor.
+    float m_TargetHeight;
     /// The Interpolation method to use
     /// (Bilinear, NearestNeighbor).
     ResizeMethod m_Method;

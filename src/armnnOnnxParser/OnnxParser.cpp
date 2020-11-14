@@ -502,13 +502,13 @@ std::pair<ConstTensor, std::unique_ptr<float[]>> OnnxParser::CreateConstTensor(c
     }
 
     // Const tensors requires at least a list of values
-    if (tensorInfo.GetNumElements() == 0)
-    {
-        throw ParseException(boost::str(
-            boost::format("No tensor data found for Const tensor '%1%' %2%")
-                          % name
-                          % CHECK_LOCATION().AsString()));
-    }
+    // FIXME //if (tensorInfo.GetNumElements() == 0)
+    // FIXME //{
+    // FIXME //    throw ParseException(boost::str(
+    // FIXME //        boost::format("No tensor data found for Const tensor '%1%' %2%")
+    // FIXME //                      % name
+    // FIXME //                      % CHECK_LOCATION().AsString()));
+    // FIXME //}
     return std::make_pair(ConstTensor(tensorInfo, tensorData.get()), std::move(tensorData));
 }
 
@@ -1692,22 +1692,32 @@ void OnnxParser::ParseReshape(const onnx::NodeProto& node)
 
 void OnnxParser::ParseResize(const onnx::NodeProto& node)
 {
-    CHECK_VALID_SIZE(static_cast<size_t>(node.input_size()), 1, 4);
+    CHECK_VALID_SIZE(static_cast<size_t>(node.input_size()), 1, 2, 3, 4);
     CHECK_VALID_SIZE(static_cast<size_t>(node.output_size()), 1);
 
     // FIXME: Double-check what T1, T2 mean from ONNX docs
     CHECK_VALID_DATATYPE(node.name(), node.input(0),
                          m_TensorsInfo[node.input(0)].m_dtype,
                          onnx::TensorProto::FLOAT); //input
-    CHECK_VALID_DATATYPE(node.name(), node.input(1),
-                         m_TensorsInfo[node.input(1)].m_dtype,
-                         onnx::TensorProto::FLOAT); //roi
-    CHECK_VALID_DATATYPE(node.name(), node.input(2),
-                         m_TensorsInfo[node.input(2)].m_dtype,
-                         onnx::TensorProto::FLOAT); //scales
-    CHECK_VALID_DATATYPE(node.name(), node.input(3),
-                         m_TensorsInfo[node.input(3)].m_dtype,
-                         onnx::TensorProto::INT64); //sizes
+    if(node.input_size() > 1)
+    {
+        CHECK_VALID_DATATYPE(node.name(), node.input(1),
+                             m_TensorsInfo[node.input(1)].m_dtype,
+                             onnx::TensorProto::FLOAT); //roi
+    }
+    if(node.input_size() > 2)
+    {
+        CHECK_VALID_DATATYPE(node.name(), node.input(2),
+                             m_TensorsInfo[node.input(2)].m_dtype,
+                             onnx::TensorProto::FLOAT); //scales
+    }
+    if(node.input_size() > 3)
+    {
+        CHECK_VALID_DATATYPE(node.name(), node.input(3),
+                             m_TensorsInfo[node.input(3)].m_dtype,
+                             onnx::TensorProto::INT64); //sizes
+    }
+
     CHECK_VALID_DATATYPE(node.name(), node.output(0),
                          m_TensorsInfo[node.output(0)].m_dtype,
                          onnx::TensorProto::FLOAT); //output
@@ -1720,10 +1730,10 @@ void OnnxParser::ParseResize(const onnx::NodeProto& node)
             % node.name()
             % CHECK_LOCATION().AsString()));
     }
-    else if(inputTensorInfo->GetShape().GetNumDimensions() != 2)
+    else if(inputTensorInfo->GetShape().GetNumDimensions() != 4) // N, C, H, W
     {
         throw ParseException(boost::str(
-            boost::format("Resize for non-2D tensor is not implemented, at node '%2%' %3%")
+            boost::format("Resize for non-2D tensor is not implemented, at node '%1%' %2%")
             % node.name()
             % CHECK_LOCATION().AsString()));
     }
@@ -1751,31 +1761,43 @@ void OnnxParser::ParseResize(const onnx::NodeProto& node)
             % CHECK_LOCATION().AsString()));
     }
 
-    if(!node.input(2).empty())
+    bool relativeScaling = !node.input(2).empty();
+    if(relativeScaling)
     {
         // Floating-point scales, relative to the input image's size
         auto *scalesTensor = m_TensorsInfo[node.input(2)].m_tensor.get();
-        float heightScale = scalesTensor->float_data()[0];
-        float widthScale = scalesTensor->float_data()[1];
         // Dimensions: N=0, C=1, H=2, W=3
-        desc.m_TargetHeight = static_cast<uint32_t>(inputTensorInfo->GetShape()[2] * heightScale);
-        desc.m_TargetWidth = static_cast<uint32_t>(inputTensorInfo->GetShape()[3] * widthScale);
+        desc.m_TargetHeight = scalesTensor->float_data()[2];
+        desc.m_TargetWidth = scalesTensor->float_data()[3];
+        desc.m_SizeMode = ResizeDescriptor::SizeMode::Scale;
     }
     else
     {
         // Fixed, integer sizes for the image
         auto *sizesTensor = m_TensorsInfo[node.input(3)].m_tensor.get();
-        desc.m_TargetHeight = static_cast<uint32_t>(sizesTensor->int64_data()[0]);
-        desc.m_TargetWidth  = static_cast<uint32_t>(sizesTensor->int64_data()[1]);
+        // Dimensions: N=0, C=1, H=2, W=3
+        desc.m_TargetHeight = static_cast<float>(sizesTensor->int64_data()[2]);
+        desc.m_TargetWidth = static_cast<float>(sizesTensor->int64_data()[3]);
+        desc.m_SizeMode = ResizeDescriptor::SizeMode::Size;
     }
 
     IConnectableLayer* layer = m_Network->AddResizeLayer(desc, node.name().c_str());
     ARMNN_ASSERT(layer != nullptr);
 
-    // Same N, C; resized H, W
-    TensorShape outputShape = inputTensorInfo->GetShape();
-    outputShape[2] = desc.m_TargetHeight;
-    outputShape[3] = desc.m_TargetWidth;
+    TensorShape outputShape;
+    if(relativeScaling)
+    {
+        // Same N, C; unspecified H, W (they depend on the input tensor!)
+        outputShape = TensorShape({inputTensorInfo->GetShape()[0], inputTensorInfo->GetShape()[1], 0, 0},
+                                  {true, true, false, false});
+    }
+    else
+    {
+        // Same N, C; resized H, W
+        outputShape = inputTensorInfo->GetShape();
+        outputShape[2] = static_cast<unsigned int>(desc.m_TargetHeight);
+        outputShape[3] = static_cast<unsigned int>(desc.m_TargetWidth);
+    }
     auto outputInfo = ComputeOutputInfo({node.output(0)}, layer,
                                         {outputShape});
     layer->GetOutputSlot(0).SetTensorInfo(outputInfo[0]);
