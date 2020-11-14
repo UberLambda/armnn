@@ -1765,19 +1765,23 @@ void OnnxParser::ParseResize(const onnx::NodeProto& node)
     if(relativeScaling)
     {
         // Floating-point scales, relative to the input image's size
+        // FIXME: Why does `float_data_size()` report 0 items, but `raw_data()` actually contains 4 floats (N, C, H, W)?
         auto *scalesTensor = m_TensorsInfo[node.input(2)].m_tensor.get();
+        auto *scales = reinterpret_cast<const float *>(scalesTensor->raw_data().data());
         // Dimensions: N=0, C=1, H=2, W=3
-        desc.m_TargetHeight = scalesTensor->float_data()[2];
-        desc.m_TargetWidth = scalesTensor->float_data()[3];
+        desc.m_TargetHeight = scales[2];
+        desc.m_TargetWidth = scales[3];
         desc.m_SizeMode = ResizeDescriptor::SizeMode::Scale;
     }
     else
     {
         // Fixed, integer sizes for the image
+        // FIXME: Why does `int64_data_size()` report 0 items, but `raw_data()` actually contains 4 int64s (N, C, H, W)?
         auto *sizesTensor = m_TensorsInfo[node.input(3)].m_tensor.get();
+        auto *sizes = reinterpret_cast<const int64_t *>(sizesTensor->raw_data().data());
         // Dimensions: N=0, C=1, H=2, W=3
-        desc.m_TargetHeight = static_cast<float>(sizesTensor->int64_data()[2]);
-        desc.m_TargetWidth = static_cast<float>(sizesTensor->int64_data()[3]);
+        desc.m_TargetHeight = static_cast<float>(sizes[2]);
+        desc.m_TargetWidth = static_cast<float>(sizes[3]);
         desc.m_SizeMode = ResizeDescriptor::SizeMode::Size;
     }
 
